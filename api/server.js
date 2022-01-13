@@ -5,7 +5,7 @@ const userRouter = require("./users/users-router.js")
 
 server.use(express.json())
 server.use(logger)
-server.use("/api/users", usersRouter)
+server.use("/api/users", userRouter)
 // global middlewares and the user's router need to be connected here
 
 server.get("/", (req, res) => {
