@@ -1,46 +1,58 @@
-const User = require("../users/users-model.js")
+const User = require("../users/users-model")
+
 function logger(req, res, next) {
-  const timestamp = new Date().toLocaleString()
-  const method = req.method
-  const url = req.originalUrl
-  // DO YOUR MAGIC
+  console.log(`Method: [${req.method}]`)
+  console.log(`[url]: ${req.url}`)
+  console.log(`[time]: ${new Date()}`)
   next()
 }
 
 async function validateUserId(req, res, next) {
+  const id = req.params.id
+  const UserId = await User.getById(id)
   try {
-    const user = await User.getById(req.params.id)
-    if (!user) {
-      res.status(404).json({ message: "no such user" })
+    if (!UserId) {
+      res.status(404).json({ message: "user not found" })
     } else {
-      req.user = user
+      req.user = UserId
       next()
     }
   } catch (err) {
-    res.status(500).json({ message: "problem finding user" })
+    next({ message: err.message })
   }
 }
 
-function validateUser(req, res, next) {
-  const { name } = req.body
-  if (!name || !name.trim()) {
-    req.status(400).json({ message: "missing required name field" })
-  } else {
-    req.name = name.trim()
-    next()
+async function validateUser(req, res, next) {
+  try {
+    if (!req.body.name) {
+      res.status(400).json({ message: "missing required name field" })
+    } else {
+      next()
+    }
+  } catch (error) {
+    next(error)
   }
 }
 
 function validatePost(req, res, next) {
   const { text } = req.body
-  if (!text || !text.trim()) {
-    req.status(400).json({ message: "missing required text field" })
-  } else {
-    req.text = text.trim()
-    next()
+  try {
+    if (!text || !text.trim()) {
+      res.status(400).json({ message: "missing required text field" })
+    } else {
+      req.text = text.trim()
+      next()
+    }
+  } catch (error) {
+    next(error)
   }
 }
 
 // do not forget to expose these functions to other modules
 
-module.exports = { logger, validateUserId, validateUser, validatePost }
+module.exports = {
+  logger,
+  validateUserId,
+  validateUser,
+  validatePost,
+}

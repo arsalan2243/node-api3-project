@@ -1,62 +1,67 @@
 const express = require("express")
+const User = require("./users-model")
+const Post = require("../posts/posts-model")
 const {
+  logger, // eslint-disable-line
   validateUserId,
   validateUser,
   validatePost,
 } = require("../middleware/middleware.js")
-// You will need `users-model.js` and `posts-model.js` both
-// The middleware functions also need to be required
-const User = require("../middleware/middleware")
-const Post = require("../posts/posts-model")
+
 const router = express.Router()
 
-router.get("/", (req, res, next) => res.send{
-  // RETURN AN ARRAY WITH ALL THE USERS
-  User.get()
-  .then(Users => {
-    res.json(users)
-  })
-  .catch(next)
+router.get("/", async (req, res, next) => {
+  try {
+    const allUsers = await User.get()
+    res.status(200).json(allUsers)
+  } catch (error) {
+    next(error)
+  }
 })
 
 router.get("/:id", validateUserId, (req, res) => {
-  // RETURN THE USER OBJECT
-  // this needs a middleware to verify user id
+  res.status(200).json(req.user)
 })
 
-router.post("/", validateUser, (req, res) => {
-  // RETURN THE NEWLY CREATED USER OBJECT
-  // this needs a middleware to check that the request body is valid
+router.post("/", validateUser, async (req, res) => {
+  const newUser = await User.insert(req.body)
+  res.status(201).json(newUser)
 })
 
-router.put("/:id", validateUserId, validateUser, (req, res) => {
-  // RETURN THE FRESHLY UPDATED USER OBJECT
-  // this needs a middleware to verify user id
-  // and another middleware to check that the request body is valid
+router.put("/:id", validateUserId, validateUser, async (req, res) => {
+  const updated = await User.update(req.params.id, req.body)
+  res.status(201).json(updated)
 })
 
-router.delete("/:id", validateUserId, (req, res) => {
-  // RETURN THE FRESHLY DELETED USER OBJECT
-  // this needs a middleware to verify user id
+router.delete("/:id", validateUserId, async (req, res) => {
+  const found = req.user
+  await User.remove(found.id)
+  res.status(200).json(found)
 })
 
-router.get("/:id/posts", validateUserId, (req, res) => {
-  // RETURN THE ARRAY OF USER POSTS
-  // this needs a middleware to verify user id
+router.get("/:id/posts", validateUserId, async (req, res, next) => {
+  try {
+    const allPost = await User.getUserPosts(req.params.id)
+    res.status(200).json(allPost)
+  } catch (error) {
+    next(error)
+  }
 })
 
-router.post("/:id/posts", validateUserId, validatePost, (req, res) => {
-  // RETURN THE NEWLY CREATED USER POST
-  // this needs a middleware to verify user id
-  // and another middleware to check that the request body is valid
-})
+router.post(
+  "/:id/posts",
+  validateUserId,
+  validatePost,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params
+      const newPost = req.text
+      const postedNewPost = await Post.insert({ user_id: id, text: newPost })
+      res.status(201).json(postedNewPost)
+    } catch (error) {
+      next(error)
+    }
+  }
+)
 
-router.use((err, req, res, next) => {
-  res.status(err.status || 500).json({
-    customMessage: `something went wrong`,
-    message: err.message,
-    stack: err.stack,
-  })
-})
-// do not forget to export the router
 module.exports = router
